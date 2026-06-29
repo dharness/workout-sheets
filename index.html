@@ -1,21 +1,13 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Workout Sheets</title>
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <main>
-    <h1>Workout Sheets</h1>
-    <button id="signin-btn">Sign in with Google</button>
-    <button id="add-day-btn" disabled>Add New Day</button>
-    <p id="status"></p>
-  </main>
-
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
-  <script src="config.js"></script>
-  <script src="app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Workout Sheets</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
