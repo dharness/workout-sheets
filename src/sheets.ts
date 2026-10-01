@@ -101,8 +101,9 @@ export async function getExerciseData(accessToken: string): Promise<ExerciseData
     return [currentDate, ...row.slice(1)];
   });
 
-  const last: LastValuesByExercise = {};
-  const lastTs: Record<string, number> = {};
+  // Per exercise, per field: the most recent non-blank value. A session saved
+  // with some fields blank shouldn't wipe out the pre-fill for those fields.
+  const lastFields: Record<string, { value: string; ts: number }[]> = {};
   const unsorted: Record<string, (TrendPoint & { ts: number })[]> = {};
   let lastExercise: string | null = null;
   let lastExerciseTs = -Infinity;
@@ -114,12 +115,11 @@ export async function getExerciseData(accessToken: string): Promise<ExerciseData
     const values = row.slice(2, 8);
     const ts = parseSheetDate(date);
 
-    // Rows aren't in chronological order (the sheet mixes a newest-at-top
-    // historical block with append-at-bottom live entries), so keep
-    // whichever occurrence of this exercise has the latest actual date.
-    if (!(exercise in lastTs) || ts >= lastTs[exercise]) {
-      last[exercise] = values;
-      lastTs[exercise] = ts;
+    const fields = (lastFields[exercise] ??= []);
+    for (let i = 0; i < 6; i++) {
+      const v = values[i];
+      if (v == null || v.trim() === "") continue;
+      if (!fields[i] || ts >= fields[i].ts) fields[i] = { value: v, ts };
     }
 
     if (hasAnyValue(values) && ts >= lastExerciseTs) {
@@ -138,6 +138,11 @@ export async function getExerciseData(accessToken: string): Promise<ExerciseData
         ts,
       });
     }
+  }
+
+  const last: LastValuesByExercise = {};
+  for (const [exercise, fields] of Object.entries(lastFields)) {
+    last[exercise] = Array.from({ length: 6 }, (_, i) => fields[i]?.value ?? "");
   }
 
   const history: HistoryByExercise = {};

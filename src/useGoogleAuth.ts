@@ -30,24 +30,49 @@ export function useGoogleAuth() {
   const tokenClientRef = useRef<google.accounts.oauth2.TokenClient | null>(null);
 
   useEffect(() => {
-    tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
-      client_id: CONFIG.CLIENT_ID,
-      scope: CONFIG.SCOPES,
-      callback: (response) => {
-        if (response.error) {
-          console.error("Sign-in error:", response.error);
-          return;
-        }
-        localStorage.setItem(
-          TOKEN_STORAGE_KEY,
-          JSON.stringify({
-            accessToken: response.access_token,
-            expiresAt: Date.now() + response.expires_in * 1000,
-          } satisfies StoredToken),
-        );
-        setAccessToken(response.access_token);
-      },
-    });
+    const initClient = () => {
+      tokenClientRef.current = window.google.accounts.oauth2.initTokenClient({
+        client_id: CONFIG.CLIENT_ID,
+        scope: CONFIG.SCOPES,
+        callback: (response) => {
+          if (response.error) {
+            // 'user_cancel' and similar non-fatal errors just mean silent refresh
+            // failed — user will see the sign-in button and can click it manually.
+            return;
+          }
+          localStorage.setItem(
+            TOKEN_STORAGE_KEY,
+            JSON.stringify({
+              accessToken: response.access_token,
+              expiresAt: Date.now() + response.expires_in * 1000,
+            } satisfies StoredToken),
+          );
+          setAccessToken(response.access_token);
+        },
+      });
+
+      // If no valid stored token, try a silent refresh. If the user's Google
+      // session is still alive this returns a new token with no popup — they
+      // won't even know their old token expired. prompt:'none' means fail
+      // silently (callback gets response.error) rather than showing any UI.
+      if (!loadStoredToken()) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (tokenClientRef.current as any).requestAccessToken({ prompt: "none" });
+      }
+    };
+
+    if (window.google?.accounts?.oauth2) {
+      initClient();
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://accounts.google.com/gsi/client";
+    script.onload = initClient;
+    document.head.appendChild(script);
+    return () => {
+      document.head.removeChild(script);
+    };
   }, []);
 
   const signIn = () => {

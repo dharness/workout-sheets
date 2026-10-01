@@ -15,6 +15,7 @@ import { NumberField } from "./NumberField";
 import { Sparkline } from "./Sparkline";
 import { TrendModal } from "./TrendModal";
 import { PlanModal } from "./PlanModal";
+import { Timer } from "./Timer";
 
 interface LiftRowState {
   exercise: string;
@@ -54,6 +55,7 @@ function App() {
   const [status, setStatus] = useState("");
   const [trendExercise, setTrendExercise] = useState<string | null>(null);
   const [showPlan, setShowPlan] = useState(false);
+  const [timerResetKey, setTimerResetKey] = useState(0);
 
   // On sign-in, auto-load whichever day comes next in the Push/Pull/Legs
   // rotation, based on the most recently logged exercise.
@@ -105,6 +107,7 @@ function App() {
   };
 
   const updateValue = (rowIndex: number, valueIndex: number, value: string) => {
+    setTimerResetKey((k) => k + 1);
     setRows((prev) =>
       prev.map((row, i) =>
         i === rowIndex
@@ -159,18 +162,21 @@ function App() {
 
       <main>
         {accessToken && (
-          <select
-            className="category-select"
-            value={category}
-            onChange={(e) => handleCategoryChange(e.target.value)}
-          >
-            <option value="">Select a day…</option>
-            {Object.keys(CONFIG.CATEGORIES).map((name) => (
-              <option key={name} value={name}>
-                {name}
-              </option>
-            ))}
-          </select>
+          <div className="controls-row">
+            <select
+              className="category-select"
+              value={category}
+              onChange={(e) => handleCategoryChange(e.target.value)}
+            >
+              <option value="">Select a day…</option>
+              {Object.keys(CONFIG.CATEGORIES).map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <Timer resetSignal={timerResetKey} />
+          </div>
         )}
 
         {category && rows.length > 0 && (
